@@ -1,14 +1,12 @@
 package co.com.pragma.api;
 
+import co.com.pragma.api.model.ErrorResponse;
 import co.com.pragma.model.user.User;
+import co.com.pragma.model.user.exceptions.InvalidUserException;
 import co.com.pragma.usecase.user.UserUseCase;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -17,38 +15,47 @@ import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
-@Tag(name = "Usuarios", description = "User management API")
 public class Handler {
 
-  private  final UserUseCase userUseCase;
+  private final UserUseCase userUseCase;
 
-  @Operation(
-      summary = "Registrar usuario",
-      description = "Registra un nuevo usuario en el sistema",
-      requestBody = @RequestBody(
-          required = true,
-          content = @Content(
-              mediaType = MediaType.APPLICATION_JSON_VALUE,
-              schema = @Schema(implementation = User.class)
-          )
-      ),
-      responses = {
-          @ApiResponse(
-              responseCode = "200",
-              description = "Usuario registrado exitosamente",
-              content = @Content(
-                  mediaType = MediaType.APPLICATION_JSON_VALUE,
-                  schema = @Schema(implementation = User.class)
-              )
-          )
-      }
-  )
-
-  public Mono<ServerResponse> listenRegisterUser(ServerRequest serverRequest) {
-    return serverRequest.bodyToMono(User.class)
-        .flatMap(userUseCase::register)
-        .flatMap(savedTask -> ServerResponse.ok()
+  public Mono<ServerResponse> listenRegisterUser(ServerRequest request) {
+    return request.bodyToMono(User.class)
+        .flatMap(userUseCase::registerUser)
+        .flatMap(user -> ServerResponse.ok()
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(savedTask));
+            .bodyValue(user))
+        .onErrorResume(InvalidUserException.class, this::handleInvalidUserException)
+        .onErrorResume(Exception.class, this::handleGenericException);
+  }
+
+  private Mono<ServerResponse> handleInvalidUserException(InvalidUserException ex) {
+    return buildErrorResponse(
+        ex.getMessage(),
+        "Validation Error",
+        HttpStatus.BAD_REQUEST
+    );
+  }
+
+  private Mono<ServerResponse> handleGenericException(Exception ex) {
+    return buildErrorResponse(
+        "Error interno del servidor",
+        ex.getMessage(),
+        HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  private Mono<ServerResponse> buildErrorResponse(String message, String error, HttpStatus status) {
+    return ServerResponse
+        .status(status)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(ErrorResponse.builder()
+            .message(message)
+            .error(error)
+            .status(status.value())
+            .path("/api/v1/usuarios")
+            .timestamp(LocalDateTime.now())
+            .build()
+        );
   }
 }

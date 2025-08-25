@@ -14,21 +14,23 @@ public class UserPostgresReactiveRepositoryAdapter extends ReactiveAdapterOperat
     UserEntity,
     Long,
     UserPostgresReactiveRepository
-> implements UserRepository {
-    public UserPostgresReactiveRepositoryAdapter(UserPostgresReactiveRepository repository, ObjectMapper mapper) {
-        /**
-         *  Could be use mapper.mapBuilder if your domain model implement builder pattern
-         *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());
-         *  Or using mapper.map with the class of the object model
-         */
-        super(repository, mapper, d -> mapper.map(d, User.class/* change for domain model */));
-    }
+    > implements UserRepository {
+
+  public UserPostgresReactiveRepositoryAdapter(UserPostgresReactiveRepository repository,
+      ObjectMapper mapper) {
+    /**
+     *  Could be use mapper.mapBuilder if your domain model implement builder pattern
+     *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());
+     *  Or using mapper.map with the class of the object model
+     */
+    super(repository, mapper, d -> mapper.map(d, User.class/* change for domain model */));
+  }
 
   @Override
   public Mono<User> register(User user) {
     return super.save(user);
   }
-
+  
   @Override
   public Mono<Boolean> existUserByEmail(String email) {
     return repository.existsByEmail(email);

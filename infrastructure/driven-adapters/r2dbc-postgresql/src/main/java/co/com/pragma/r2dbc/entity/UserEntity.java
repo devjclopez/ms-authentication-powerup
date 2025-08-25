@@ -1,5 +1,6 @@
 package co.com.pragma.r2dbc.entity;
 
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +24,7 @@ public class UserEntity {
   @Column("last_name")
   private String lastName;
   @Column("birth_date")
-  private String birthDate;
+  private LocalDate birthDate;
   @Column("address")
   private String address;
   @Column("phone")
